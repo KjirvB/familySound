@@ -48,9 +48,9 @@ def get_current_team(request: Request, db: Session = Depends(get_db)):
         return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        team_id: int = payload.get("sub")
+        team_id = payload.get("sub")
     except JWTError:
         return None
-    if team_id is None:
+    if team_id is None or not str(team_id).isdigit():
         return None
-    return db.query(models.Team).filter(models.Team.id == team_id).first()
+    return db.query(models.Team).filter(models.Team.id == int(team_id)).first()

@@ -27,6 +27,22 @@ async def db_session_middleware(request: Request, call_next):
     return response
 
 
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request, db: Session = Depends(auth.get_db)):
+    team = auth.get_current_team(request, db)
+    if team:
+        return RedirectResponse("/dashboard", status_code=302)
+    token = request.cookies.get("access_token")
+    if token:
+        try:
+            payload = auth.jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+            if payload.get("sub") == "jury":
+                return RedirectResponse("/jury", status_code=302)
+        except auth.JWTError:
+            pass
+    return templates.TemplateResponse("home.html", {"request": request, "title": "Home"})
+
+
 @app.get("/register", response_class=HTMLResponse)
 async def get_register(request: Request):
     return templates.TemplateResponse("register.html", {"request": request, "title": "Register"})
@@ -59,7 +75,7 @@ async def post_login(request: Request, name: str = Form(...), password: str = Fo
     team = db.query(models.Team).filter_by(name=name).first()
     if not team or not auth.verify_password(password, team.pass_hash):
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    token = auth.create_access_token({"sub": team.id})
+    token = auth.create_access_token({"sub": str(team.id)})
     response = RedirectResponse("/dashboard", status_code=302)
     response.set_cookie("access_token", token, httponly=True)
     return response
