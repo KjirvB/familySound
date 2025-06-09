@@ -159,16 +159,10 @@ async def leaderboard(request: Request, db: Session = Depends(auth.get_db)):
         points = 0
         for orig in t.originals:
             judgments = [a.judgment for a in orig.attempts if a.judgment]
-            if not judgments:
+            matches = [j for j in judgments if j.verdict == "match"]
+            # Poster team gets points only when no other team matches their sound
+            if not matches:
                 points += 3
-            else:
-                matches = [j for j in judgments if j.verdict == 'match']
-                if matches and len(matches) == len(judgments):
-                    points += sum(1 for _ in matches)
-                elif matches:
-                    points += 0  # poster team gets none
-                else:
-                    pass
         for attempt in t.attempts:
             j = attempt.judgment
             if j and j.verdict == 'match':

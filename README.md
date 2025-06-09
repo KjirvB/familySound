@@ -24,3 +24,11 @@ automatically redirected to their dashboard or the jury panel.
 
 Teams can view other groups' recordings from the dashboard and submit their own
 attempts directly in the browser using the built‑in recorder.
+
+## Scoring
+
+Points on the leaderboard are based on jury judgments:
+
+* **3 points** to the posting team if no other team matches their original.
+* **1 point** to each team with a successful attempt when every attempt is a match.
+* **2 points** to each successful team and **0** to the poster if at least one but not all teams match.
