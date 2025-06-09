@@ -80,4 +80,82 @@
     </li>
 {% endfor %}
 </ul>
+
+<h3 class="text-xl font-semibold my-4">Other Teams' Originals</h3>
+<ul class="space-y-4">
+{% for orig in others %}
+    <li class="border rounded p-2 bg-white">
+        <div class="mb-1 font-semibold">{{ orig.team.name }} - {{ orig.note or "Original " ~ orig.id }}</div>
+        <audio controls src="/{{ orig.filepath }}" class="w-full mb-2"></audio>
+        <form action="/attempts/{{ orig.id }}" method="post" enctype="multipart/form-data" class="attempt-form space-y-2">
+            <input type="file" name="file" accept="audio/*" capture required class="audio-input block mb-2 w-full">
+            <div class="flex space-x-2">
+                <button type="button" class="start-record flex-1 bg-red-600 text-white px-4 py-2 rounded">Start Recording</button>
+                <button type="button" class="stop-record flex-1 bg-gray-600 text-white px-4 py-2 rounded" disabled>Stop</button>
+            </div>
+            <div class="recording-indicator text-red-600 font-semibold hidden">Recording...</div>
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Submit Attempt</button>
+            <audio controls class="audio-preview w-full mt-2 hidden"></audio>
+        </form>
+    </li>
+{% endfor %}
+</ul>
+
+<script>
+    document.querySelectorAll('.attempt-form').forEach(form => {
+        const input = form.querySelector('.audio-input');
+        const preview = form.querySelector('.audio-preview');
+        const startBtn = form.querySelector('.start-record');
+        const stopBtn = form.querySelector('.stop-record');
+        const indicator = form.querySelector('.recording-indicator');
+        let recorder;
+        let chunks = [];
+
+        function update() {
+            const file = input.files[0];
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
+            }
+        }
+
+        input.addEventListener('change', update);
+
+        startBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                recorder = new MediaRecorder(stream);
+                chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    const file = new File([blob], 'recording.webm', { type: blob.type });
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    input.files = dt.files;
+                    update();
+                    indicator.classList.add('hidden');
+                };
+                recorder.start();
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                indicator.classList.remove('hidden');
+            } catch(err) {
+                alert('Recording failed: ' + err);
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (recorder && recorder.state !== 'inactive') {
+                recorder.stop();
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                indicator.classList.add('hidden');
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -21,3 +21,6 @@ The jury can change a team's password via `/jury/password`.
 
 Visit `/` to see links to the login and registration pages. Logged-in users are
 automatically redirected to their dashboard or the jury panel.
+
+Teams can view other groups' recordings from the dashboard and submit their own
+attempts directly in the browser using the built‑in recorder.

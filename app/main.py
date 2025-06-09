@@ -103,12 +103,14 @@ async def dashboard(request: Request, db: Session = Depends(auth.get_db)):
     if not team:
         return RedirectResponse("/login", status_code=302)
     originals = db.query(models.Original).filter_by(team_id=team.id).all()
+    others = db.query(models.Original).filter(models.Original.team_id != team.id).all()
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
             "team": team,
             "originals": originals,
+            "others": others,
             "title": "Dashboard",
             "is_jury": auth.is_jury(request),
         },
