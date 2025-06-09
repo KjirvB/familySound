@@ -142,6 +142,7 @@ async def upload_attempt(original_id: int, request: Request, file: UploadFile = 
     ext = os.path.splitext(file.filename)[1]
     uid = uuid4().hex
     dest = f"uploads/attempts/{uid}{ext}"
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "wb") as f:
         f.write(await file.read())
     attempt = models.Attempt(team_id=team.id, original_id=original_id, filepath=dest)
