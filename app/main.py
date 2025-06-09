@@ -181,3 +181,37 @@ async def judge_attempt(attempt_id: int, request: Request, verdict: str = Form(.
     db.commit()
     return RedirectResponse("/jury", status_code=302)
 
+
+@app.get("/jury/password", response_class=HTMLResponse)
+async def change_password_form(request: Request, db: Session = Depends(auth.get_db)):
+    token = request.cookies.get("access_token")
+    if not token:
+        return RedirectResponse("/login", status_code=302)
+    try:
+        payload = auth.jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+    except auth.JWTError:
+        return RedirectResponse("/login", status_code=302)
+    if payload.get("sub") != "jury":
+        return RedirectResponse("/dashboard", status_code=302)
+    teams = db.query(models.Team).all()
+    return templates.TemplateResponse("change_password.html", {"request": request, "teams": teams, "title": "Change Team Password"})
+
+
+@app.post("/jury/password")
+async def change_password(request: Request, team_id: int = Form(...), password: str = Form(...), db: Session = Depends(auth.get_db)):
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401)
+    try:
+        payload = auth.jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+    except auth.JWTError:
+        raise HTTPException(status_code=401)
+    if payload.get("sub") != "jury":
+        raise HTTPException(status_code=401)
+    team = db.query(models.Team).filter_by(id=team_id).first()
+    if not team:
+        raise HTTPException(status_code=404)
+    team.pass_hash = auth.get_password_hash(password)
+    db.commit()
+    return RedirectResponse("/jury/password", status_code=302)
+

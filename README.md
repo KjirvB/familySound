@@ -16,3 +16,5 @@ uvicorn app.main:app --reload
 ```
 
 Audio uploads are stored under `uploads/`.
+
+The jury can change a team's password via `/jury/password`.
