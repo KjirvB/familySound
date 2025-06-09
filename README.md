@@ -2,7 +2,9 @@
 
 A simple FastAPI app for team-based audio challenges.
 
-The HTML templates use the Tailwind CSS CDN for basic styling.
+The HTML templates use the Tailwind CSS CDN for basic styling. Passwords are
+hashed using `passlib`'s `pbkdf2_sha256` algorithm so no external dependencies
+are required.
 
 ## Setup
 
