@@ -19,6 +19,21 @@ templates = Jinja2Templates(directory="templates")
 REGISTER_KEY = os.environ.get("REGISTER_KEY", "letmein")
 JURY_NAME = os.environ.get("JURY_USER", "jury")
 JURY_PASS = os.environ.get("JURY_PASS", "jurypass")
+DEFAULT_MAX_ORIGINALS = 3
+
+
+def get_setting(db: Session, key: str, default: str | None = None) -> str | None:
+    setting = db.query(models.Setting).filter_by(key=key).first()
+    return setting.value if setting else default
+
+
+def set_setting(db: Session, key: str, value: str) -> None:
+    setting = db.query(models.Setting).filter_by(key=key).first()
+    if setting:
+        setting.value = value
+    else:
+        db.add(models.Setting(key=key, value=value))
+    db.commit()
 
 
 @app.middleware("http")
@@ -103,14 +118,33 @@ async def dashboard(request: Request, db: Session = Depends(auth.get_db)):
     if not team:
         return RedirectResponse("/login", status_code=302)
     originals = db.query(models.Original).filter_by(team_id=team.id).all()
-    others = db.query(models.Original).filter(models.Original.team_id != team.id).all()
+    others_raw = db.query(models.Original).filter(models.Original.team_id != team.id).all()
+    other_groups = {}
+    attempt_status = {}
+    for orig in others_raw:
+        other_groups.setdefault(orig.team.name, []).append(orig)
+        latest = (
+            db.query(models.Attempt)
+            .filter_by(team_id=team.id, original_id=orig.id)
+            .order_by(models.Attempt.id.desc())
+            .first()
+        )
+        if latest is None:
+            attempt_status[orig.id] = {"can": True, "status": None}
+        elif latest.judgment is None:
+            attempt_status[orig.id] = {"can": False, "status": "pending"}
+        elif latest.judgment.verdict == "match":
+            attempt_status[orig.id] = {"can": False, "status": "matched"}
+        else:
+            attempt_status[orig.id] = {"can": True, "status": "failed"}
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
             "team": team,
             "originals": originals,
-            "others": others,
+            "other_groups": other_groups,
+            "attempt_status": attempt_status,
             "title": "Dashboard",
             "is_jury": auth.is_jury(request),
         },
@@ -122,6 +156,9 @@ async def upload_original(request: Request, file: UploadFile = File(...), note: 
     team = auth.get_current_team(request, db)
     if not team:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    max_orig = int(get_setting(db, "max_originals", str(DEFAULT_MAX_ORIGINALS)))
+    if db.query(models.Original).filter_by(team_id=team.id).count() >= max_orig:
+        raise HTTPException(status_code=400, detail="Original limit reached")
     ext = os.path.splitext(file.filename)[1]
     uid = uuid4().hex
     dest = f"uploads/originals/{uid}{ext}"
@@ -139,6 +176,16 @@ async def upload_attempt(original_id: int, request: Request, file: UploadFile = 
     team = auth.get_current_team(request, db)
     if not team:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    existing = (
+        db.query(models.Attempt)
+        .filter_by(team_id=team.id, original_id=original_id)
+        .order_by(models.Attempt.id.desc())
+        .first()
+    )
+    if existing and (
+        existing.judgment is None or existing.judgment.verdict == "match"
+    ):
+        raise HTTPException(status_code=400, detail="Attempt already submitted")
     ext = os.path.splitext(file.filename)[1]
     uid = uuid4().hex
     dest = f"uploads/attempts/{uid}{ext}"
@@ -271,4 +318,30 @@ async def change_password(request: Request, team_id: int = Form(...), password: 
     team.pass_hash = auth.get_password_hash(password)
     db.commit()
     return RedirectResponse("/jury/password?success=1", status_code=302)
+
+
+@app.get("/jury/settings", response_class=HTMLResponse)
+async def jury_settings(request: Request, db: Session = Depends(auth.get_db)):
+    if not auth.is_jury(request):
+        return RedirectResponse("/login", status_code=302)
+    current = int(get_setting(db, "max_originals", str(DEFAULT_MAX_ORIGINALS)))
+    success = request.query_params.get("success") == "1"
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "max_originals": current,
+            "success": success,
+            "title": "Settings",
+            "is_jury": True,
+        },
+    )
+
+
+@app.post("/jury/settings")
+async def set_max_originals(request: Request, max_originals: int = Form(...), db: Session = Depends(auth.get_db)):
+    if not auth.is_jury(request):
+        raise HTTPException(status_code=401)
+    set_setting(db, "max_originals", str(max_originals))
+    return RedirectResponse("/jury/settings?success=1", status_code=302)
 

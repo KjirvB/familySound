@@ -75,31 +75,45 @@
 <ul class="space-y-4">
 {% for orig in originals %}
     <li class="border rounded p-2 bg-white">
-        <div class="mb-1 font-semibold">{{ orig.note or "Original " ~ orig.id }}</div>
+        <div class="mb-1 font-semibold">{{ loop.index }}. {{ orig.note or "Original " ~ orig.id }}</div>
         <audio controls src="/{{ orig.filepath }}" class="w-full"></audio>
     </li>
 {% endfor %}
 </ul>
 
 <h3 class="text-xl font-semibold my-4">Other Teams' Originals</h3>
-<ul class="space-y-4">
-{% for orig in others %}
-    <li class="border rounded p-2 bg-white">
-        <div class="mb-1 font-semibold">{{ orig.team.name }} - {{ orig.note or "Original " ~ orig.id }}</div>
-        <audio controls src="/{{ orig.filepath }}" class="w-full mb-2"></audio>
-        <form action="/attempts/{{ orig.id }}" method="post" enctype="multipart/form-data" class="attempt-form space-y-2">
-            <input type="file" name="file" accept="audio/*" capture required class="audio-input block mb-2 w-full">
-            <div class="flex space-x-2">
-                <button type="button" class="start-record flex-1 bg-red-600 text-white px-4 py-2 rounded">Start Recording</button>
-                <button type="button" class="stop-record flex-1 bg-gray-600 text-white px-4 py-2 rounded" disabled>Stop</button>
-            </div>
-            <div class="recording-indicator text-red-600 font-semibold hidden">Recording...</div>
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Submit Attempt</button>
-            <audio controls class="audio-preview w-full mt-2 hidden"></audio>
-        </form>
-    </li>
+<div class="space-y-4">
+{% for team_name, items in other_groups.items() %}
+<details class="border rounded bg-white p-2">
+    <summary class="cursor-pointer font-semibold">{{ team_name }}</summary>
+    <ul class="space-y-4 mt-2">
+    {% for orig in items %}
+        <li class="border rounded p-2 bg-gray-50">
+            <div class="mb-1 font-semibold">{{ loop.index }}. {{ orig.note or "Original " ~ orig.id }}</div>
+            <audio controls src="/{{ orig.filepath }}" class="w-full mb-2"></audio>
+            {% set st = attempt_status[orig.id] %}
+            {% if st.can %}
+            <form action="/attempts/{{ orig.id }}" method="post" enctype="multipart/form-data" class="attempt-form space-y-2">
+                <input type="file" name="file" accept="audio/*" capture required class="audio-input block mb-2 w-full">
+                <div class="flex space-x-2">
+                    <button type="button" class="start-record flex-1 bg-red-600 text-white px-4 py-2 rounded">Start Recording</button>
+                    <button type="button" class="stop-record flex-1 bg-gray-600 text-white px-4 py-2 rounded" disabled>Stop</button>
+                </div>
+                <div class="recording-indicator text-red-600 font-semibold hidden">Recording...</div>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Submit Attempt</button>
+                <audio controls class="audio-preview w-full mt-2 hidden"></audio>
+            </form>
+            {% elif st.status == 'pending' %}
+            <p class="text-blue-600">Attempt submitted, awaiting judgment.</p>
+            {% else %}
+            <p class="text-green-600">You already matched this original.</p>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+</details>
 {% endfor %}
-</ul>
+</div>
 
 <script>
     document.querySelectorAll('.attempt-form').forEach(form => {
