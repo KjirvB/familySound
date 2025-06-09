@@ -5,7 +5,11 @@
 
 <h3 class="text-xl font-semibold mb-2">Upload Original</h3>
 <form action="/originals" method="post" enctype="multipart/form-data" class="space-y-2 mb-6">
-    <input id="audioInput" type="file" name="file" accept="audio/*" capture required class="block">
+    <input id="audioInput" type="file" name="file" accept="audio/*" capture required class="block mb-2">
+    <div class="space-x-2 mb-2">
+        <button id="startRecord" type="button" class="bg-gray-600 text-white px-2 py-1 rounded">Start Recording</button>
+        <button id="stopRecord" type="button" disabled class="bg-gray-600 text-white px-2 py-1 rounded">Stop</button>
+    </div>
     <input type="text" name="note" placeholder="note" class="border rounded p-2 w-full">
     <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Upload</button>
 </form>
@@ -13,7 +17,12 @@
 <script>
     const input = document.getElementById('audioInput');
     const preview = document.getElementById('audioPreview');
-    input.addEventListener('change', () => {
+    const startBtn = document.getElementById('startRecord');
+    const stopBtn = document.getElementById('stopRecord');
+    let recorder;
+    let chunks = [];
+
+    function updatePreview() {
         const file = input.files[0];
         if (file) {
             preview.src = URL.createObjectURL(file);
@@ -21,6 +30,38 @@
         } else {
             preview.src = '';
             preview.classList.add('hidden');
+        }
+    }
+
+    input.addEventListener('change', updatePreview);
+
+    startBtn.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recorder = new MediaRecorder(stream);
+            chunks = [];
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                const file = new File([blob], 'recording.webm', { type: blob.type });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                updatePreview();
+            };
+            recorder.start();
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        } catch (err) {
+            alert('Recording failed: ' + err);
+        }
+    });
+
+    stopBtn.addEventListener('click', () => {
+        if (recorder && recorder.state !== 'inactive') {
+            recorder.stop();
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
         }
     });
 </script>
