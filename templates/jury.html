@@ -10,7 +10,7 @@
     <p class="font-semibold">Attempt by {{ attempt.team.name }}:</p>
     <audio controls src="/{{ attempt.filepath }}" class="w-full"></audio>
 </div>
-<form action="/jury/{{ attempt.id }}" method="post" class="space-y-2">
+<form action="/jury/attempt/{{ attempt.id }}" method="post" class="space-y-2">
     <div>
         <label class="mr-4"><input type="radio" name="verdict" value="match" class="mr-1"> Match</label>
         <label><input type="radio" name="verdict" value="no-match" class="mr-1"> No Match</label>

@@ -212,7 +212,7 @@ async def jury_panel(request: Request, db: Session = Depends(auth.get_db)):
     )
 
 
-@app.post("/jury/{attempt_id}")
+@app.post("/jury/attempt/{attempt_id}")
 async def judge_attempt(attempt_id: int, request: Request, verdict: str = Form(...), comment: str = Form(None), db: Session = Depends(auth.get_db)):
     token = request.cookies.get("access_token")
     if not token:
