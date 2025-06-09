@@ -54,3 +54,15 @@ def get_current_team(request: Request, db: Session = Depends(get_db)):
     if team_id is None or not str(team_id).isdigit():
         return None
     return db.query(models.Team).filter(models.Team.id == int(team_id)).first()
+
+
+def is_jury(request: Request) -> bool:
+    """Return True if the request is authenticated as the jury user."""
+    token = request.cookies.get("access_token")
+    if not token:
+        return False
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return False
+    return payload.get("sub") == "jury"

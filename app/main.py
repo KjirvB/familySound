@@ -40,12 +40,18 @@ async def home(request: Request, db: Session = Depends(auth.get_db)):
                 return RedirectResponse("/jury", status_code=302)
         except auth.JWTError:
             pass
-    return templates.TemplateResponse("home.html", {"request": request, "title": "Home"})
+    return templates.TemplateResponse(
+        "home.html",
+        {"request": request, "title": "Home", "is_jury": auth.is_jury(request)},
+    )
 
 
 @app.get("/register", response_class=HTMLResponse)
 async def get_register(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request, "title": "Register"})
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request, "title": "Register", "is_jury": auth.is_jury(request)},
+    )
 
 
 @app.post("/register")
@@ -62,7 +68,10 @@ async def post_register(request: Request, name: str = Form(...), password: str =
 
 @app.get("/login", response_class=HTMLResponse)
 async def get_login(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "title": "Login"})
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "title": "Login", "is_jury": auth.is_jury(request)},
+    )
 
 
 @app.post("/login")
@@ -94,7 +103,16 @@ async def dashboard(request: Request, db: Session = Depends(auth.get_db)):
     if not team:
         return RedirectResponse("/login", status_code=302)
     originals = db.query(models.Original).filter_by(team_id=team.id).all()
-    return templates.TemplateResponse("dashboard.html", {"request": request, "team": team, "originals": originals, "title": "Dashboard"})
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "team": team,
+            "originals": originals,
+            "title": "Dashboard",
+            "is_jury": auth.is_jury(request),
+        },
+    )
 
 
 @app.post("/originals")
@@ -160,7 +178,15 @@ async def leaderboard(request: Request, db: Session = Depends(auth.get_db)):
                     points += 2
         leaderboard.append({"team": t.name, "points": points})
     leaderboard.sort(key=lambda x: x["points"], reverse=True)
-    return templates.TemplateResponse("leaderboard.html", {"request": request, "leaderboard": leaderboard, "title": "Leaderboard"})
+    return templates.TemplateResponse(
+        "leaderboard.html",
+        {
+            "request": request,
+            "leaderboard": leaderboard,
+            "title": "Leaderboard",
+            "is_jury": auth.is_jury(request),
+        },
+    )
 
 
 @app.get("/jury", response_class=HTMLResponse)
@@ -175,7 +201,15 @@ async def jury_panel(request: Request, db: Session = Depends(auth.get_db)):
     if payload.get("sub") != "jury":
         return RedirectResponse("/dashboard", status_code=302)
     attempt = db.query(models.Attempt).filter(~models.Attempt.judgment.has()).first()
-    return templates.TemplateResponse("jury.html", {"request": request, "attempt": attempt, "title": "Jury"})
+    return templates.TemplateResponse(
+        "jury.html",
+        {
+            "request": request,
+            "attempt": attempt,
+            "title": "Jury",
+            "is_jury": True,
+        },
+    )
 
 
 @app.post("/jury/{attempt_id}")
@@ -210,7 +244,17 @@ async def change_password_form(request: Request, db: Session = Depends(auth.get_
     if payload.get("sub") != "jury":
         return RedirectResponse("/dashboard", status_code=302)
     teams = db.query(models.Team).all()
-    return templates.TemplateResponse("change_password.html", {"request": request, "teams": teams, "title": "Change Team Password"})
+    success = request.query_params.get("success") == "1"
+    return templates.TemplateResponse(
+        "change_password.html",
+        {
+            "request": request,
+            "teams": teams,
+            "title": "Change Team Password",
+            "success": success,
+            "is_jury": True,
+        },
+    )
 
 
 @app.post("/jury/password")
@@ -229,5 +273,5 @@ async def change_password(request: Request, team_id: int = Form(...), password: 
         raise HTTPException(status_code=404)
     team.pass_hash = auth.get_password_hash(password)
     db.commit()
-    return RedirectResponse("/jury/password", status_code=302)
+    return RedirectResponse("/jury/password?success=1", status_code=302)
 

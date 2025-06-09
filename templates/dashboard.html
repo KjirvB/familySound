@@ -4,14 +4,15 @@
 <p class="mb-6">Welcome, <span class="font-semibold">{{ team.name }}</span></p>
 
 <h3 class="text-xl font-semibold mb-2">Upload Original</h3>
-<form action="/originals" method="post" enctype="multipart/form-data" class="space-y-2 mb-6">
-    <input id="audioInput" type="file" name="file" accept="audio/*" capture required class="block mb-2">
-    <div class="space-x-2 mb-2">
-        <button id="startRecord" type="button" class="bg-gray-600 text-white px-2 py-1 rounded">Start Recording</button>
-        <button id="stopRecord" type="button" disabled class="bg-gray-600 text-white px-2 py-1 rounded">Stop</button>
+<form action="/originals" method="post" enctype="multipart/form-data" class="space-y-4 mb-6">
+    <input id="audioInput" type="file" name="file" accept="audio/*" capture required class="block mb-2 w-full">
+    <div class="flex space-x-2 mb-2">
+        <button id="startRecord" type="button" class="flex-1 bg-red-600 text-white px-4 py-2 rounded">Start Recording</button>
+        <button id="stopRecord" type="button" disabled class="flex-1 bg-gray-600 text-white px-4 py-2 rounded">Stop</button>
     </div>
+    <div id="recordingIndicator" class="text-red-600 font-semibold hidden">Recording...</div>
     <input type="text" name="note" placeholder="note" class="border rounded p-2 w-full">
-    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Upload</button>
+    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Upload</button>
 </form>
 <audio id="audioPreview" controls class="w-full mt-2 hidden"></audio>
 <script>
@@ -19,6 +20,7 @@
     const preview = document.getElementById('audioPreview');
     const startBtn = document.getElementById('startRecord');
     const stopBtn = document.getElementById('stopRecord');
+    const indicator = document.getElementById('recordingIndicator');
     let recorder;
     let chunks = [];
 
@@ -48,10 +50,12 @@
                 dt.items.add(file);
                 input.files = dt.files;
                 updatePreview();
+                indicator.classList.add('hidden');
             };
             recorder.start();
             startBtn.disabled = true;
             stopBtn.disabled = false;
+            indicator.classList.remove('hidden');
         } catch (err) {
             alert('Recording failed: ' + err);
         }
@@ -62,6 +66,7 @@
             recorder.stop();
             startBtn.disabled = false;
             stopBtn.disabled = true;
+            indicator.classList.add('hidden');
         }
     });
 </script>
