@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Delete Recordings</h2>
+{% if success %}
+<p class="text-green-600 font-semibold mb-4">Items deleted.</p>
+{% endif %}
+<form action="/jury/delete" method="post" class="space-y-6">
+    <div>
+        <h3 class="font-semibold mb-2">Originals</h3>
+        <ul class="space-y-2 max-h-60 overflow-y-auto">
+        {% for orig in originals %}
+            <li class="flex items-center space-x-2">
+                <input type="checkbox" name="original_ids" value="{{ orig.id }}" class="mr-2">
+                <span>{{ orig.team.name }} - {{ orig.note or 'Original ' ~ orig.id }}</span>
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+    <div>
+        <h3 class="font-semibold mb-2">Attempts</h3>
+        <ul class="space-y-2 max-h-60 overflow-y-auto">
+        {% for att in attempts %}
+            <li class="flex items-center space-x-2">
+                <input type="checkbox" name="attempt_ids" value="{{ att.id }}" class="mr-2">
+                <span>{{ att.team.name }} -> Original {{ att.original.id }}</span>
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Delete Selected</button>
+</form>
+{% endblock %}

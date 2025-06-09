@@ -345,3 +345,60 @@ async def set_max_originals(request: Request, max_originals: int = Form(...), db
     set_setting(db, "max_originals", str(max_originals))
     return RedirectResponse("/jury/settings?success=1", status_code=302)
 
+
+@app.get("/jury/delete", response_class=HTMLResponse)
+async def delete_form(request: Request, db: Session = Depends(auth.get_db)):
+    if not auth.is_jury(request):
+        return RedirectResponse("/login", status_code=302)
+    originals = db.query(models.Original).all()
+    attempts = db.query(models.Attempt).all()
+    success = request.query_params.get("success") == "1"
+    return templates.TemplateResponse(
+        "delete.html",
+        {
+            "request": request,
+            "originals": originals,
+            "attempts": attempts,
+            "success": success,
+            "title": "Delete Files",
+            "is_jury": True,
+        },
+    )
+
+
+@app.post("/jury/delete")
+async def delete_selected(request: Request, original_ids: list[int] = Form([]), attempt_ids: list[int] = Form([]), db: Session = Depends(auth.get_db)):
+    if not auth.is_jury(request):
+        raise HTTPException(status_code=401)
+    # delete originals and their attempts
+    for oid in original_ids:
+        orig = db.query(models.Original).filter_by(id=oid).first()
+        if not orig:
+            continue
+        # remove attempt files and judgments
+        for att in orig.attempts:
+            try:
+                os.remove(att.filepath)
+            except OSError:
+                pass
+            if att.judgment:
+                db.delete(att.judgment)
+            db.delete(att)
+        try:
+            os.remove(orig.filepath)
+        except OSError:
+            pass
+        db.delete(orig)
+    for aid in attempt_ids:
+        att = db.query(models.Attempt).filter_by(id=aid).first()
+        if not att:
+            continue
+        try:
+            os.remove(att.filepath)
+        except OSError:
+            pass
+        if att.judgment:
+            db.delete(att.judgment)
+        db.delete(att)
+    db.commit()
+    return RedirectResponse("/jury/delete?success=1", status_code=302)
