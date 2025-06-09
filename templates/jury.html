@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Jury Panel</h2>
+{% if attempt %}
+<div class="mb-4">
+    <p class="font-semibold">Original:</p>
+    <audio controls src="/{{ attempt.original.filepath }}" class="w-full"></audio>
+</div>
+<div class="mb-4">
+    <p class="font-semibold">Attempt by {{ attempt.team.name }}:</p>
+    <audio controls src="/{{ attempt.filepath }}" class="w-full"></audio>
+</div>
+<form action="/jury/{{ attempt.id }}" method="post" class="space-y-2">
+    <div>
+        <label class="mr-4"><input type="radio" name="verdict" value="match" class="mr-1"> Match</label>
+        <label><input type="radio" name="verdict" value="no-match" class="mr-1"> No Match</label>
+    </div>
+    <input type="text" name="comment" placeholder="comment" class="border rounded p-2 w-full">
+    <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded">Submit</button>
+</form>
+{% else %}
+<p>No attempts pending</p>
+{% endif %}
+<p class="mt-4">
+    <a href="/jury/password" class="text-blue-500 underline">Change Team Password</a>
+</p>
+{% endblock %}
