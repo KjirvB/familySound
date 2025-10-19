@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-gray-800 text-white p-4 mb-4">
+        <div class="container mx-auto flex flex-wrap justify-between items-center">
+            <div class="space-x-4 mb-2 md:mb-0">
+                {% if is_jury %}
+                    <a href="/jury" class="hover:underline">Jury Panel</a>
+                    <a href="/jury/password" class="hover:underline">Passwords</a>
+                    <a href="/jury/settings" class="hover:underline">Settings</a>
+                    <a href="/jury/delete" class="hover:underline">Delete Files</a>
+                {% else %}
+                    <a href="/dashboard" class="hover:underline">Dashboard</a>
+                    <a href="/leaderboard" class="hover:underline">Leaderboard</a>
+                {% endif %}
+            </div>
+            <div>
+                <a href="/logout" class="hover:underline">Logout</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container mx-auto p-4">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
